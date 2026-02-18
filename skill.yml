@@ -1,4 +1,5 @@
 name: autonomous-task-runner
+display_name: "Autonomous Task Runner"
 description: >
   Persistent task queue system with two operating modes: INTAKE (user adds tasks via message,
   stored in persistent queue) and DISPATCHER (heartbeat/cron triggers queue check, spawns
