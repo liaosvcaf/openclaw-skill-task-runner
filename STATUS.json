@@ -1,0 +1,12 @@
+{
+  "skill": "task-runner",
+  "stage": "test",
+  "tier": "general",
+  "version": "2.0.0",
+  "created": "2026-02-17",
+  "last_updated": "2026-02-17",
+  "author": "skill-engineer",
+  "selfPlayDate": "2026-02-17",
+  "selfPlayResult": "pass",
+  "notes": "Redesigned from v1.0.0 (one-shot executor) to v2.0.0 (persistent queue + heartbeat dispatcher). Core change: tasks now accumulate in a single queue file; dispatcher runs on heartbeat/cron to execute pending tasks via subagents. Self-play passed: INTAKE mode correctly parsed 3-task message, DISPATCHER executed T-01 (info-lookup) and T-02 (file-creation) successfully, T-03 (impossible: flight booking) correctly blocked after 3 strategies with unblock instructions."
+}
