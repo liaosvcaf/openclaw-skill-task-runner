@@ -7,7 +7,7 @@ description: >
   The system never "finishes" — it always remains ready for the next task.
 metadata:
   author: skill-engineer
-  version: 2.0.3
+  version: 2.1.0
   owner: main agent (any agent with access to the full tool suite)
   tier: general
 ---
@@ -26,8 +26,8 @@ This skill has **two distinct modes** with different triggers and behaviors:
 
 | Mode | Trigger | Purpose |
 |------|---------|---------|
-| **INTAKE** | User message containing task intent | Parse message → add tasks to queue → confirm |
-| **DISPATCHER** | Heartbeat / cron systemEvent | Read queue → dispatch pending tasks → report completions |
+| **INTAKE** | User message containing task intent | Parse message → add tasks to queue → confirm → **immediately run DISPATCHER** |
+| **DISPATCHER** | After INTAKE (primary) · Heartbeat/cron (backup) | Read queue → dispatch pending tasks → report completions |
 
 Both modes read and write the **same persistent queue file**.
 
@@ -55,12 +55,13 @@ Activate INTAKE mode when the user's message matches any of the following patter
 - Single web search requests ("google X")
 - The heartbeat systemEvent (that's DISPATCHER mode)
 
-### Mode 2: DISPATCHER (heartbeat / cron)
+### Mode 2: DISPATCHER (inline after INTAKE, heartbeat, or cron)
 
 Activate DISPATCHER mode when triggered by:
-- `HEARTBEAT.md` check during a heartbeat poll
-- systemEvent: `"TASK_RUNNER_DISPATCH: check queue and run pending tasks"`
-- Any scheduled/cron trigger registered for task-runner
+- **Immediately after INTAKE** — runs in the same turn, right after tasks are queued (primary path)
+- `HEARTBEAT.md` check during a heartbeat poll (backup: catches retries and completions)
+- systemEvent: `"TASK_RUNNER_DISPATCH: check queue and run pending tasks"` (backup)
+- Any scheduled/cron trigger registered for task-runner (backup)
 
 ---
 
@@ -200,7 +201,7 @@ WRITE updated queue file to disk
 ### Step 6 — Confirm to user
 
 ```
-Added T-06: [description]. Queue now has N pending tasks.
+Added T-06: [description]. Starting now...
 ```
 
 For multiple tasks:
@@ -209,10 +210,12 @@ For multiple tasks:
 • T-06: [description]
 • T-07: [description]
 • T-08: [description]
-Queue now has N pending tasks. Dispatcher will pick these up shortly.
+Starting dispatcher now...
 ```
 
-**Then exit.** Do not execute tasks inline. The dispatcher handles execution.
+**Then immediately run DISPATCHER mode (Steps 1–5 below) in the same turn.**
+Do not exit and wait for the next heartbeat. Tasks must start executing immediately.
+The heartbeat/cron dispatcher is a backup for retries and completion checks — not the primary execution path.
 
 ### Step 7 — Handle control commands
 
@@ -340,7 +343,7 @@ Added T-06: [description]. Queue now has N pending tasks.
 • T-06: [description]
 • T-07: [description]
 
-Queue now has N pending tasks. Dispatcher will pick these up on the next heartbeat.
+Starting now...
 ```
 
 ### Task status table (on demand)
@@ -395,6 +398,17 @@ Reply "retry T-NN" once ready.
 Heartbeat and cron setup is **automatic**. Step 0 of INTAKE mode handles this on first use —
 no manual configuration required.
 
+### Role of heartbeat/cron (backup only)
+
+Tasks are dispatched **immediately** after INTAKE — heartbeat and cron are backups only.
+
+The backup dispatcher handles:
+- **Retry dispatch**: tasks that failed and were reset to pending
+- **Completion checks**: polling running subagent sessions for done/blocked status
+- **Recovery**: tasks that were pending when no user message triggered INTAKE
+
+Users should never need to wait for a heartbeat for a freshly added task.
+
 ### What gets configured automatically
 
 **HEARTBEAT.md entry** (injected on first INTAKE):
@@ -411,8 +425,6 @@ every 15 min → systemEvent: "TASK_RUNNER_DISPATCH: check queue and run pending
 sessionTarget: main
 ```
 
-This ensures tasks are dispatched even if heartbeats are delayed or skipped.
-
 ### Manual setup (if needed)
 
 If for any reason auto-setup did not run (e.g., queue file was pre-created externally),
@@ -427,7 +439,8 @@ delete `${TASK_RUNNER_DIR}/task-queue.json` and send any task — Step 0 will fi
 1. All tasks from user message parsed and assigned IDs
 2. Tasks appended to queue file (file saved to disk)
 3. Confirmation sent to user with task IDs and count
-4. No inline execution attempted
+4. DISPATCHER mode triggered immediately in the same turn
+5. Subagents spawned for pending tasks before INTAKE turn ends
 
 ### DISPATCHER mode succeeds when:
 

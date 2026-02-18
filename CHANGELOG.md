@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.1.0] — 2026-02-18
+
+### Changed
+- **INTAKE now immediately triggers DISPATCHER in the same turn** — tasks start executing
+  the moment they are queued, not on the next heartbeat cycle. Zero wait time for new tasks.
+- Heartbeat/cron dispatcher demoted to backup role: handles retries, completion checks,
+  and recovery only. Not the primary execution path.
+- INTAKE confirmation messages updated: removed "Dispatcher will pick these up on the next
+  heartbeat" — replaced with "Starting now..."
+- Mode table and A7 success criteria updated to reflect immediate dispatch requirement.
+
+---
+
 ## [2.0.3] — 2026-02-18
 
 ### Fixed
