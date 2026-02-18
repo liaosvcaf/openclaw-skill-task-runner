@@ -7,7 +7,7 @@ description: >
   The system never "finishes" — it always remains ready for the next task.
 metadata:
   author: skill-engineer
-  version: 2.0.0
+  version: 2.0.1
   owner: main agent (any agent with access to the full tool suite)
   tier: general
 ---
@@ -101,6 +101,61 @@ TASK_RUNNER_ARCHIVE_DAYS=7
 ## Mode 1: INTAKE — Step-by-Step
 
 **Goal:** Convert user message into structured task objects, append to queue, confirm.
+
+### Step 0 — First Run Setup (auto-configure on first use)
+
+**Run this check before anything else, every INTAKE invocation:**
+
+```
+CHECK whether ${TASK_RUNNER_DIR}/task-queue.json exists
+IF file does NOT exist:
+  → This is the first run. Auto-configure everything silently before proceeding.
+
+  [1] Create directory:
+      exec: mkdir -p ${TASK_RUNNER_DIR}
+
+  [2] Initialize queue file:
+      WRITE ${TASK_RUNNER_DIR}/task-queue.json with default structure:
+      { "lastId": null, "tasks": [], "archivedCount": 0 }
+
+  [3] Register heartbeat entry:
+      READ HEARTBEAT.md (create it if missing)
+      IF "Task Runner Dispatcher" is NOT already in the file:
+        APPEND the following block (with a blank line before it):
+
+        ## Task Runner Dispatcher
+        Every heartbeat: check ${TASK_RUNNER_DIR}/task-queue.json
+        - If pending or running tasks exist → run DISPATCHER mode (task-runner skill)
+        - If nothing pending → HEARTBEAT_OK (skip)
+
+      WRITE the updated HEARTBEAT.md
+
+  [4] Register backup cron job:
+      CALL cron tool with:
+        action: "add"
+        job:
+          name: "Task Runner Dispatcher"
+          schedule: { kind: "every", everyMs: 900000 }
+          payload: { kind: "systemEvent", text: "TASK_RUNNER_DISPATCH: check queue and run pending tasks" }
+          sessionTarget: "main"
+          enabled: true
+
+  [5] Notify user:
+      "⚙️ Task Runner initialized.
+       Heartbeat dispatcher registered in HEARTBEAT.md.
+       Backup cron job registered (runs every 15 minutes).
+       Your tasks will execute automatically."
+
+  → THEN continue with normal INTAKE steps below.
+
+IF file already exists:
+  → Skip Step 0 entirely. Proceed directly to Step 1.
+```
+
+**Idempotency rule:** Step 0 only fires on true first run (queue file absent).
+It will never double-register the heartbeat entry or create duplicate cron jobs.
+
+---
 
 ### Step 1 — Load queue
 
@@ -337,26 +392,31 @@ Reply "retry T-NN" once ready.
 
 ## A6 — Heartbeat Integration
 
-### Register in HEARTBEAT.md
+Heartbeat and cron setup is **automatic**. Step 0 of INTAKE mode handles this on first use —
+no manual configuration required.
 
-Add the following entry to `HEARTBEAT.md`:
+### What gets configured automatically
 
+**HEARTBEAT.md entry** (injected on first INTAKE):
 ```markdown
 ## Task Runner Dispatcher
-Every heartbeat: read ${TASK_RUNNER_DIR}/task-queue.json
-- If pending or running tasks exist: run DISPATCHER mode (task-runner skill)
-- If nothing pending: HEARTBEAT_OK (skip)
+Every heartbeat: check ${TASK_RUNNER_DIR}/task-queue.json
+- If pending or running tasks exist → run DISPATCHER mode (task-runner skill)
+- If nothing pending → HEARTBEAT_OK (skip)
 ```
 
-### Backup cron dispatcher
-
-Register a cron job as a backup dispatcher (runs every 15 minutes):
-
+**Backup cron job** (registered on first INTAKE):
 ```
-cron: every 15 min → systemEvent: "TASK_RUNNER_DISPATCH: check queue and run pending tasks"
+every 15 min → systemEvent: "TASK_RUNNER_DISPATCH: check queue and run pending tasks"
+sessionTarget: main
 ```
 
 This ensures tasks are dispatched even if heartbeats are delayed or skipped.
+
+### Manual setup (if needed)
+
+If for any reason auto-setup did not run (e.g., queue file was pre-created externally),
+delete `${TASK_RUNNER_DIR}/task-queue.json` and send any task — Step 0 will fire.
 
 ---
 
@@ -390,7 +450,8 @@ This ensures tasks are dispatched even if heartbeats are delayed or skipped.
 
 | Situation | Behavior |
 |-----------|---------|
-| Queue file missing | Initialize fresh queue; proceed normally |
+| Queue file missing (first run) | Run Step 0 auto-setup: create dir, init queue, register heartbeat + cron; notify user |
+| Queue file missing (manually deleted) | Step 0 re-fires: re-initializes queue; does NOT re-register heartbeat/cron (idempotent check) |
 | Queue file corrupt/invalid JSON | Log error, notify user, do not overwrite; ask user to inspect |
 | Task description is ambiguous | Assign `unknown` type; dispatcher will attempt classification + fallback |
 | `maxConcurrent` already reached | Dispatcher skips dispatching; checks again next heartbeat |

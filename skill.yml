@@ -3,7 +3,7 @@ description: >
   Persistent task queue system with two operating modes: INTAKE (user adds tasks via message,
   stored in persistent queue) and DISPATCHER (heartbeat/cron triggers queue check, spawns
   subagents for pending tasks, reports completions). The system runs continuously — never finishes.
-version: 2.0.0
+version: 2.0.1
 tier: general
 
 metadata:

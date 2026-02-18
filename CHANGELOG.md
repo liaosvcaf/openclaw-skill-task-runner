@@ -5,7 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [1.0.0] — 2026-02-17
+## [2.0.1] — 2026-02-18
+
+### Added
+- **Step 0: First Run Auto-Setup** — on first INTAKE invocation (queue file absent), the agent
+  automatically creates the task directory, initializes the queue file, appends the dispatcher
+  entry to HEARTBEAT.md, and registers the backup cron job (every 15 min). No manual setup needed.
+- Idempotency check: HEARTBEAT.md entry and cron job are never duplicated on re-initialization.
+- Manual recovery path documented: delete queue file to re-trigger Step 0.
+- Updated A6 section to reflect that heartbeat/cron setup is now automatic.
+- Updated Edge Cases table with first-run and manually-deleted queue scenarios.
+
+---
+
+## [2.0.0] — 2026-02-17
 
 ### Added
 - Initial release of the task-runner skill
