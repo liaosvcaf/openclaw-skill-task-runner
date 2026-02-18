@@ -7,7 +7,7 @@ description: >
   The system never "finishes" — it always remains ready for the next task.
 metadata:
   author: skill-engineer
-  version: 2.0.1
+  version: 2.0.2
   owner: main agent (any agent with access to the full tool suite)
   tier: general
 ---

@@ -5,6 +5,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.2] — 2026-02-18
+
+### Fixed
+- Added `permissions` block to `skill.yml` declaring all system-level actions explicitly:
+  filesystem access, cron registration, subagent spawning, exec (mkdir only).
+  Resolves OpenClaw security scanner "Suspicious" flag for undeclared permissions.
+
+---
+
 ## [2.0.1] — 2026-02-18
 
 ### Added

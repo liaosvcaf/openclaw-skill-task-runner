@@ -3,7 +3,7 @@ description: >
   Persistent task queue system with two operating modes: INTAKE (user adds tasks via message,
   stored in persistent queue) and DISPATCHER (heartbeat/cron triggers queue check, spawns
   subagents for pending tasks, reports completions). The system runs continuously — never finishes.
-version: 2.0.1
+version: 2.0.2
 tier: general
 
 metadata:
@@ -160,6 +160,27 @@ heartbeat_integration:
   cron_backup:
     schedule: "every 15 minutes"
     system_event: "TASK_RUNNER_DISPATCH: check queue and run pending tasks"
+
+permissions:
+  # Declared explicitly so security scanners understand intent.
+  # All actions are taken on behalf of the authenticated user.
+  filesystem:
+    - "create ${TASK_RUNNER_DIR}/ directory on first run"
+    - "read/write ${TASK_RUNNER_DIR}/task-queue.json (persistent queue)"
+    - "read/write/create HEARTBEAT.md (injects dispatcher entry on first run)"
+    - "write ${TASK_RUNNER_DIR}/archive/YYYY-MM.json (archiving old tasks)"
+  cron:
+    - "register one recurring cron job on first run (every 15 min dispatcher)"
+    - "no cron jobs are registered after first-run setup"
+  subagents:
+    - "spawn subagent per pending task (up to maxConcurrent simultaneously)"
+    - "subagents execute tasks and report results back to queue"
+  exec:
+    - "mkdir -p ${TASK_RUNNER_DIR} (directory creation only)"
+  first_run_behavior: >
+    On first INTAKE invocation (queue file absent), the skill auto-configures:
+    creates queue directory, initializes queue file, appends entry to HEARTBEAT.md,
+    and registers one backup cron job. User is notified. All subsequent runs skip setup.
 
 dependencies:
   tools:
