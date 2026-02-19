@@ -131,15 +131,20 @@ IF file does NOT exist:
 
       WRITE the updated HEARTBEAT.md
 
-  [4] Register backup cron job:
-      CALL cron tool with:
-        action: "add"
-        job:
-          name: "Task Runner Dispatcher"
-          schedule: { kind: "every", everyMs: 900000 }
-          payload: { kind: "systemEvent", text: "TASK_RUNNER_DISPATCH: check queue and run pending tasks" }
-          sessionTarget: "main"
-          enabled: true
+  [4] Register backup cron job (idempotent):
+      CALL cron tool with action: "list"
+      Check if any job with name "Task Runner Dispatcher" already exists and is enabled.
+      IF already exists:
+        → Skip registration. Do NOT call cron add.
+      IF not found:
+        CALL cron tool with:
+          action: "add"
+          job:
+            name: "Task Runner Dispatcher"
+            schedule: { kind: "every", everyMs: 900000 }
+            payload: { kind: "systemEvent", text: "TASK_RUNNER_DISPATCH: check queue and run pending tasks" }
+            sessionTarget: "main"
+            enabled: true
 
   [5] Notify user:
       "⚙️ Task Runner initialized.
@@ -150,11 +155,14 @@ IF file does NOT exist:
   → THEN continue with normal INTAKE steps below.
 
 IF file already exists:
-  → Skip Step 0 entirely. Proceed directly to Step 1.
+  → Skip Steps [1]-[2] (no re-init needed). Still run Step [3] and [4] to repair
+    any missing heartbeat entry or cron job (e.g., after gateway restart).
+  → Proceed to Step 1 after completing [3] and [4].
 ```
 
-**Idempotency rule:** Step 0 only fires on true first run (queue file absent).
-It will never double-register the heartbeat entry or create duplicate cron jobs.
+**Idempotency rule:** Steps [3] and [4] are always safe to re-run — both check before writing.
+Step [3] checks HEARTBEAT.md for existing entry. Step [4] checks cron list before adding.
+This ensures no duplicates regardless of how many times Step 0 fires.
 
 ---
 
