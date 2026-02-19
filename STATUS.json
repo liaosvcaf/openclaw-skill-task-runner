@@ -1,12 +1,14 @@
 {
+  "_generated": "Auto-generated from root STATUS.json. Do not edit manually.",
   "skill": "task-runner",
   "stage": "published",
   "tier": "general",
-  "version": "2.0.3",
   "created": "2026-02-17",
-  "last_updated": "2026-02-18",
-  "author": "skill-engineer",
-  "selfPlayDate": "2026-02-17",
-  "selfPlayResult": "pass",
-  "notes": "v2.0.1: Added Step 0 First Run Auto-Setup. On first INTAKE invocation (queue file absent), the agent automatically creates the task directory, initializes the queue, registers the heartbeat entry in HEARTBEAT.md, and registers the backup cron job. No manual setup required. Idempotency guaranteed. v2.0.0 base: Persistent queue + heartbeat dispatcher; self-play passed INTAKE+DISPATCHER modes."
+  "notes": "New skill. 7 files. Autonomous task execution with retry loop and per-task notification.",
+  "clawhubSlug": "autonomous-task-runner",
+  "clawhubVersion": "2.1.0",
+  "githubRepo": "liaosvcaf/openclaw-skill-task-runner",
+  "publishedDate": "2026-02-17",
+  "released": true,
+  "clawhub": "https://clawhub.ai/chunhualiao/autonomous-task-runner"
 }
