@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.1.1] — 2026-02-19
+
+### Fixed
+- **Duplicate cron job bug:** Step 0 now checks `cron list` before calling `cron add` for the
+  backup dispatcher. Previously, `cron add` fired unconditionally if the queue file was absent,
+  creating duplicate "Task Runner Dispatcher" cron jobs on repeated first-run triggers.
+- **Missing re-registration after gateway restart:** Re-init path previously skipped Steps [3]
+  and [4] entirely when queue file existed. Now runs both steps on every init to self-heal
+  missing heartbeat entries or cron jobs after a gateway restart or cron purge.
+
+---
+
 ## [2.1.0] — 2026-02-18
 
 ### Changed
